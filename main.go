@@ -12,23 +12,23 @@ const keyLen = 32
 const splitLen = 8
 
 func main() {
-	plainText := "00101000100000000010100000111111"
+	plainText := "00101000100000000010100000111110"
 	fmt.Println(permutation(plainText))
 }
 
 func permutation(in string) []string {
 	var v []string
-	var v_result []string
+	var vResult []string
 	if utf8.RuneCountInString(in)%splitLen == 0 && utf8.RuneCountInString(in) == blockLen {
 		msg := in
 		runes := []rune(msg)
 		for i := 0; i < len(runes); i += splitLen {
 			if i+splitLen < len(runes) {
-				m_tmp := string(runes[i:(i + splitLen)])
-				v = append(v, m_tmp)
+				mTmp := string(runes[i:(i + splitLen)])
+				v = append(v, mTmp)
 			} else {
-				m_tmp := string(runes[i:])
-				v = append(v, m_tmp)
+				mTmp := string(runes[i:])
+				v = append(v, mTmp)
 			}
 		}
 	} else {
@@ -60,18 +60,20 @@ func permutation(in string) []string {
 	v3_3 := rotateL(strings.Split(v3_2, ""), 13)
 	v3_4 := _10to2(_2to10(v0_3) ^ _2to10(v3_3))
 
-	v_result = append(v_result, v0_3)
-	v_result = append(v_result, v1_4)
-	v_result = append(v_result, v2_3)
-	v_result = append(v_result, v3_4)
-	return v_result
+	vResult = append(vResult, v0_3)
+	vResult = append(vResult, v1_4)
+	vResult = append(vResult, v2_3)
+	vResult = append(vResult, v3_4)
+	return vResult
 }
 
+//StoI string型をInt64型にする処理を関数化
 func StoI(s string) int64 {
 	res, _ := strconv.Atoi(s)
 	return int64(res)
 }
 
+//ItoS int型をstring型にする処理を関数化
 func ItoS(i int) string {
 	return strconv.Itoa(i)
 }
