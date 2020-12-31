@@ -9,9 +9,11 @@ const keyLen = 32
 const splitLen = 8
 
 func main() {
-	plainText := []int{0b10000000, 0b10000000, 0b10000000, 0b10000000}
-	a := permutation(plainText)
-	permutation(a)
+	plainText := []int{0b00000000, 0b00000000, 0b00000000, 0b00000001}
+	res := plainText
+	for i := 0; i < 2; i++ {
+		res = permutation(res)
+	}
 }
 
 func permutation(vIn []int) []int {
@@ -132,12 +134,17 @@ func rotateL(a []string, i int) string {
 func rotateR(a []string, i int) string {
 	return rotateL(a, len(a)-i)
 }
+
+
+func createK1(k int) int {
+	if  {
+		return RotateL(k, 1)
+	}else {
+		return k ^ 0b00000000000000000000000010000111
+	}
+}
+
+func createK2(k1 int) int {
+  return createK1(createK1(k1))
+}
 */
-
-func createK1() {
-
-}
-
-func createK2() {
-
-}
