@@ -9,9 +9,15 @@ const keyLen = 32
 const splitLen = 8
 
 func main() {
-	plainText := []int{0b00000000, 0b00000000, 0b00000000, 0b00000001}
+	plainText := []int{0b10000000, 0b00000000, 0b00000000, 0b00000000}
+	k := 0b00000000100000001000000010000000
+	k1 := createK1(k)
+	fmt.Printf("K:   %032b\n", k)
+	fmt.Printf("K1:  %032b\n", k1)
+	fmt.Printf("平文: %08b\n", plainText)
 	res := plainText
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
+		fmt.Printf("π関数%d段目\n", i+1)
 		res = permutation(res)
 	}
 }
@@ -68,6 +74,22 @@ func modPlus(a int, b int) int {
 
 func RotateL(a int, i int) int {
 	return ((a<<i)&0xff ^ (a >> (8 - i)))
+}
+
+func RotateL32(a int, i int) int {
+	return ((a<<i)&0xffffffff ^ (a >> (32 - i)))
+}
+
+func createK1(k int) int {
+	if ((k >> 31) & 1) == 0 {
+		return RotateL32(k, 1)
+	} else {
+		return k ^ 0b00000000000000000000000010000111
+	}
+}
+
+func createK2(k1 int) int {
+	return createK1(createK1(k1))
 }
 
 /*
@@ -133,18 +155,5 @@ func rotateL(a []string, i int) string {
 
 func rotateR(a []string, i int) string {
 	return rotateL(a, len(a)-i)
-}
-
-
-func createK1(k int) int {
-	if  {
-		return RotateL(k, 1)
-	}else {
-		return k ^ 0b00000000000000000000000010000111
-	}
-}
-
-func createK2(k1 int) int {
-  return createK1(createK1(k1))
 }
 */
