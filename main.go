@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
-	"unicode/utf8"
 )
 
 const blockLen = 32
@@ -12,81 +9,66 @@ const keyLen = 32
 const splitLen = 8
 
 func main() {
-	plainText := "00101000100000000010100000111110"
-	fmt.Println(permutation(plainText))
+	plainText := []int{0b10000000, 0b10000000, 0b10000000, 0b10000000}
+	a := permutation(plainText)
+	permutation(a)
 }
 
-func permutation(in string) []string {
-	var v []string
-	var vResult []string
-	if utf8.RuneCountInString(in)%splitLen == 0 && utf8.RuneCountInString(in) == blockLen {
-		msg := in
-		runes := []rune(msg)
-		for i := 0; i < len(runes); i += splitLen {
-			if i+splitLen < len(runes) {
-				mTmp := string(runes[i:(i + splitLen)])
-				v = append(v, mTmp)
-			} else {
-				mTmp := string(runes[i:])
-				v = append(v, mTmp)
-			}
-		}
-	} else {
-		fmt.Println("桁数：", utf8.RuneCountInString(in))
-		fmt.Println(("桁数≠ブロック長"))
-	}
+func permutation(vIn []int) []int {
+	//vIn = append(vIn, in>>24&0xff)
+	//vIn = append(vIn, in>>16&0xff)
+	//vIn = append(vIn, in>>8&0xff)
+	//vIn = append(vIn, in&0xff)
+
+	var vOut []int
 
 	//v3
-	v3_1 := rotateL(strings.Split(v[3], ""), 8)
-	v3_2 := _10to2((_2to10(v[2]) + _2to10(v[3])) ^ StoI(v3_1))
+	v3_1 := RotateL(vIn[3], 2)
+	v3_2 := (modPlus(vIn[2], vIn[3]) ^ v3_1)
 
 	//v0
-	v0_1 := _10to2(_2to10(v[0]) + _2to10(v[1]))
-	v0_2 := rotateL(strings.Split(v0_1, ""), 16)
-	v0_3 := _10to2(_2to10((v3_2)) + _2to10(v0_2))
+	v0_1 := modPlus(vIn[0], vIn[1])
+	v0_2 := RotateL(v0_1, 4)
+	v0_3 := modPlus(v3_2, v0_2)
 
 	//v1
-	v1_1 := rotateL(strings.Split(v[1], ""), 15)
-	v1_2 := _10to2((_2to10(v[1]) + _2to10(v[0])) ^ StoI(v1_1))
-	v1_3 := rotateL(strings.Split(v1_2, ""), 7)
-	v1_4 := _10to2((_2to10(v1_2) + _2to10(v[2])) ^ _2to10(v1_3))
+	v1_1 := RotateL(vIn[1], 3)
+	v1_2 := modPlus(vIn[1], vIn[0]) ^ v1_1
+	v1_3 := RotateL(v1_2, 3)
+	v1_4 := modPlus(v1_2, vIn[2]) ^ v1_3
 
 	//v2
-	v2_1 := _10to2(_2to10(v[2]) + _2to10(v[3]))
-	v2_2 := _10to2(_2to10((v1_2)) + _2to10(v2_1))
-	v2_3 := rotateL(strings.Split(v2_2, ""), 16)
+	v2_1 := modPlus(vIn[2], vIn[3])
+	v2_2 := modPlus(v1_2, v2_1)
+	v2_3 := RotateL(v2_2, 4)
 
 	//v3
-	v3_3 := rotateL(strings.Split(v3_2, ""), 13)
-	v3_4 := _10to2(_2to10(v0_3) ^ _2to10(v3_3))
+	v3_3 := RotateL(v3_2, 1)
+	v3_4 := v0_3 ^ v3_3
 
-	vResult = append(vResult, v0_3)
-	vResult = append(vResult, v1_4)
-	vResult = append(vResult, v2_3)
-	vResult = append(vResult, v3_4)
-	return vResult
+	vOut = append(vOut, v0_3)
+	vOut = append(vOut, v1_4)
+	vOut = append(vOut, v2_3)
+	vOut = append(vOut, v3_4)
+
+	fmt.Printf("%08b ", vOut[0])
+	fmt.Printf("%08b ", vOut[1])
+	fmt.Printf("%08b ", vOut[2])
+	fmt.Printf("%08b\n", vOut[3])
+	fmt.Println("")
+
+	return vOut
 }
 
-//StoI string型をInt64型にする処理を関数化
-func StoI(s string) int64 {
-	res, _ := strconv.Atoi(s)
-	return int64(res)
+func modPlus(a int, b int) int {
+	return (a + b) % 256
 }
 
-//ItoS int型をstring型にする処理を関数化
-func ItoS(i int) string {
-	return strconv.Itoa(i)
+func RotateL(a int, i int) int {
+	return ((a<<i)&0xff ^ (a >> (8 - i)))
 }
 
-func _2to10(s string) int64 {
-	res, _ := strconv.ParseInt(s, 2, 0)
-	return res
-}
-
-func _10to2(i int64) string {
-	return fmt.Sprintf("%b", i)
-}
-
+/*
 func joinArray(ary []string) string {
 	s := ""
 	for _, v := range ary {
@@ -100,6 +82,26 @@ func gcd(a, b int) int {
 		a, b = b, a%b
 	}
 	return a
+}
+
+//StoI string型をint型にする処理を関数化
+func StoI(s string) int {
+	res, _ := strconv.Atoi(s)
+	return res
+}
+
+//ItoS int型をstring型にする処理を関数化
+func ItoS(i int) string {
+	return strconv.Itoa(i)
+}
+
+func _2to10(s string) int {
+	res, _ := strconv.ParseInt(s, 2, 0)
+	return int(res)
+}
+
+func _10to2(i int) string {
+	return fmt.Sprintf("%b", i)
 }
 
 func rotateL(a []string, i int) string {
@@ -127,7 +129,6 @@ func rotateL(a []string, i int) string {
 	return joinArray((a))
 }
 
-/*
 func rotateR(a []string, i int) string {
 	return rotateL(a, len(a)-i)
 }
