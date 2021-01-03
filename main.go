@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"sort"
 	"time"
@@ -10,7 +11,8 @@ import (
 const blockLen = 32
 const keyLen = 32
 const splitLen = 8
-const times = 3
+
+var times int = int(math.Pow(2, 1))
 
 func main() {
 	texts := random(0b0, 0b11111111111111111111111111111111, times)
@@ -26,10 +28,11 @@ func main() {
 		text = append(text, texts[i]>>8&0xff)
 		text = append(text, texts[i]&0xff)
 
-		fmt.Printf("乱数:   %d個目\n", i)
+		fmt.Printf("乱数:   %d個目\n", i+1)
 		fmt.Printf("平文: %08b\n", text)
 		fmt.Printf("K:   %032b\n", keys[i])
 		fmt.Printf("K1:  %032b\n", createK1(keys[i]))
+
 		res := text
 		for j := 0; j < 3; j++ {
 			fmt.Printf("π関数%d段目\n", j+1)
@@ -80,7 +83,6 @@ func permutation(vIn []int) []int {
 	fmt.Printf("%08b ", vOut[1])
 	fmt.Printf("%08b ", vOut[2])
 	fmt.Printf("%08b\n", vOut[3])
-	fmt.Println("")
 
 	return vOut
 }
