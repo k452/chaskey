@@ -12,33 +12,60 @@ const blockLen = 32
 const keyLen = 32
 const splitLen = 8
 
-var times int = int(math.Pow(2, 1))
+var times int = int(math.Pow(2, 3)) //最終的には(2, 32)にする
 
 func main() {
+	sabun := random(0b0, 0b00000000000000000000000000000111, int(math.Pow(2, 3))-1)
+	sabun = append(sabun, 0b111)
+
 	texts := random(0b0, 0b11111111111111111111111111111111, times)
-	//plainText := []int{0b10000000, 0b00000000, 0b00000000, 0b00000000}
-	keys := random(0b0, 0b11111111111111111111111111111111, times)
-	//k := 0b00000000100000001000000010000000
-	//k1 := createK1(k)
+	//texts = append(texts, 0b11111111111111111111111111111111)
+
+	//keys := random(0b0, 0b11111111111111111111111111111111, times)
+	//keys = append(keys, 0b11111111111111111111111111111111)
+
+	//for _, v := range sabun {
+	//	fmt.Printf("%03b\n", v)
+	//}
 
 	for i := 0; i < times; i++ {
-		var text []int
-		text = append(text, texts[i]>>24&0xff)
-		text = append(text, texts[i]>>16&0xff)
-		text = append(text, texts[i]>>8&0xff)
-		text = append(text, texts[i]&0xff)
-
-		fmt.Printf("乱数:   %d個目\n", i+1)
-		fmt.Printf("平文: %08b\n", text)
-		fmt.Printf("K:   %032b\n", keys[i])
-		fmt.Printf("K1:  %032b\n", createK1(keys[i]))
-
-		res := text
-		for j := 0; j < 3; j++ {
-			fmt.Printf("π関数%d段目\n", j+1)
-			res = permutation(res)
+		result := []int{
+			0b00000000,
+			0b00000000,
+			0b00000000,
+			0b00000000,
 		}
+		for _, v := range sabun {
+			var text []int
+			text = append(text, (texts[i]>>24&0xff)^v)
+			text = append(text, (texts[i]>>16&0xff)^v)
+			text = append(text, (texts[i]>>8&0xff)^v)
+			text = append(text, (texts[i]&0xff)^v)
+
+			//fmt.Printf("試行: %d回目\n", i+1)
+			//fmt.Printf("差分: %d個目\n", j+1)
+			//fmt.Printf("平文: %08b\n", text)
+			//fmt.Printf("K:    %032b\n", keys[i])
+			//fmt.Printf("K1:   %032b\n", createK1(keys[i]))
+
+			for k := 0; k < 3; k++ {
+				text = permutation(text)
+			}
+			//fmt.Printf("出力: %08b\n", text)
+			for l := 0; l < 4; l++ {
+				result[l] = text[l] ^ result[l]
+			}
+			//fmt.Println("----------------------------------------------------------")
+		}
+		fmt.Printf("試行: %d回目\n", i+1)
+		fmt.Printf("結果: %08b\n", result)
 		fmt.Println("----------------------------------------------------------")
+		result = []int{
+			0b00000000,
+			0b00000000,
+			0b00000000,
+			0b00000000,
+		}
 	}
 }
 
@@ -79,10 +106,10 @@ func permutation(vIn []int) []int {
 	vOut = append(vOut, v2_3)
 	vOut = append(vOut, v3_4)
 
-	fmt.Printf("%08b ", vOut[0])
-	fmt.Printf("%08b ", vOut[1])
-	fmt.Printf("%08b ", vOut[2])
-	fmt.Printf("%08b\n", vOut[3])
+	//fmt.Printf("%08b ", vOut[0])
+	//fmt.Printf("%08b ", vOut[1])
+	//fmt.Printf("%08b ", vOut[2])
+	//fmt.Printf("%08b\n", vOut[3])
 
 	return vOut
 }
@@ -138,69 +165,3 @@ func random(min int, max int, num int) []int {
 	sort.Sort(sort.IntSlice(keys))
 	return keys
 }
-
-/*
-func joinArray(ary []string) string {
-	s := ""
-	for _, v := range ary {
-		s += v
-	}
-	return s
-}
-
-func gcd(a, b int) int {
-	for b != 0 {
-		a, b = b, a%b
-	}
-	return a
-}
-
-//StoI string型をint型にする処理を関数化
-func StoI(s string) int {
-	res, _ := strconv.Atoi(s)
-	return res
-}
-
-//ItoS int型をstring型にする処理を関数化
-func ItoS(i int) string {
-	return strconv.Itoa(i)
-}
-
-func _2to10(s string) int {
-	res, _ := strconv.ParseInt(s, 2, 0)
-	return int(res)
-}
-
-func _10to2(i int) string {
-	return fmt.Sprintf("%b", i)
-}
-
-func rotateL(a []string, i int) string {
-	i = i % len(a)
-	if i < 0 {
-		i += len(a)
-	}
-
-	for c := 0; c < gcd(i, len(a)); c++ {
-		t := a[c]
-		j := c
-		for {
-			k := j + i
-			if k >= len(a) {
-				k -= len(a)
-			}
-			if k == c {
-				break
-			}
-			a[j] = a[k]
-			j = k
-		}
-		a[j] = t
-	}
-	return joinArray((a))
-}
-
-func rotateR(a []string, i int) string {
-	return rotateL(a, len(a)-i)
-}
-*/
