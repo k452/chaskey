@@ -11,22 +11,14 @@ import (
 const blockLen = 32
 const keyLen = 32
 const splitLen = 8
+const piRound = 2
 
 var times int = int(math.Pow(2, 3)) //最終的には(2, 32)にする
 
 func main() {
-	sabun := random(0b0, 0b00000000000000000000000000000111, int(math.Pow(2, 3))-1)
-	sabun = append(sabun, 0b111)
-
+	sabun := random(0b0, 0b00000000000000000000000000000111, int(math.Pow(2, 3)))
 	texts := random(0b0, 0b11111111111111111111111111111111, times)
-	//texts = append(texts, 0b11111111111111111111111111111111)
-
-	//keys := random(0b0, 0b11111111111111111111111111111111, times)
-	//keys = append(keys, 0b11111111111111111111111111111111)
-
-	//for _, v := range sabun {
-	//	fmt.Printf("%03b\n", v)
-	//}
+	keys := random(0b0, 0b11111111111111111111111111111111, 1)
 
 	for i := 0; i < times; i++ {
 		result := []int{
@@ -48,7 +40,7 @@ func main() {
 			//fmt.Printf("K:    %032b\n", keys[i])
 			//fmt.Printf("K1:   %032b\n", createK1(keys[i]))
 
-			for k := 0; k < 3; k++ {
+			for k := 0; k < piRound; k++ {
 				text = permutation(text)
 			}
 			//fmt.Printf("出力: %08b\n", text)
@@ -70,11 +62,6 @@ func main() {
 }
 
 func permutation(vIn []int) []int {
-	//vIn = append(vIn, in>>24&0xff)
-	//vIn = append(vIn, in>>16&0xff)
-	//vIn = append(vIn, in>>8&0xff)
-	//vIn = append(vIn, in&0xff)
-
 	var vOut []int
 
 	//v3
@@ -105,11 +92,6 @@ func permutation(vIn []int) []int {
 	vOut = append(vOut, v1_4)
 	vOut = append(vOut, v2_3)
 	vOut = append(vOut, v3_4)
-
-	//fmt.Printf("%08b ", vOut[0])
-	//fmt.Printf("%08b ", vOut[1])
-	//fmt.Printf("%08b ", vOut[2])
-	//fmt.Printf("%08b\n", vOut[3])
 
 	return vOut
 }
@@ -149,7 +131,7 @@ func k(m map[int]bool) []int {
 }
 
 func random(min int, max int, num int) []int {
-	numRange := max - min
+	numRange := max - min + 1
 
 	selected := make(map[int]bool)
 	rand.Seed(time.Now().UnixNano())
