@@ -9,28 +9,49 @@ import (
 const blockLen = 32 //ブロック長
 const keyLen = 32   //鍵長
 const splitLen = 8  //
-const piRound = 2   //π関数の中の転置の段数
-const times = 1     //試行回数
+const piRound = 8   //π関数の中の転置の段数
+const times = 10    //試行回数
 
+/* bitを1つずつ
+bit := fmt.Sprintf("%04b", 0b1110)
+arr := strings.Split(bit, "")
+for _, v := range arr {
+	num, _ := strconv.Atoi(v)
+	fmt.Println(num + 10)
+}
+*/
 func main() {
 	//実行時間の計測開始
 	start := time.Now()
 
+	//channelの用意
+	c := make(chan int)
+
+	//出力用
+	output := 0b00000000000000000000000000000000
+
 	//平文をランダム生成
-	texts := random(0b0, 0b11111111111111111111111111111111, times)
+	texts := random(0b0, 0b11111111111111111111111111111111, 1)
 	keys := random(0b0, 0b11111111111111111111111111111111, times)
 
 	//暗号化を複数回実行
 	for i := 0; i < times; i++ {
-		chaskey(texts[i], keys[i], i)
+		go chaskey(texts[0], keys[i], i, c)
+		//fmt.Printf("%d回目：%032b\n", i+1, output)
+	}
+	for i := 0; i < times; i++ {
+		output |= <-c
 	}
 
+	//結果の表示
+	fmt.Printf("最終結果：%032b\n", output)
+
 	//実行時間の表示
-	fmt.Println(time.Since(start))
+	fmt.Println("実行時間：", time.Since(start))
 }
 
 //chaskeyの暗号本体
-func chaskey(in, k, num int) {
+func chaskey(in, k, num int, c chan int) {
 	result := 0b00000000000000000000000000000000
 	k1 := createK1(k)
 
@@ -39,14 +60,16 @@ func chaskey(in, k, num int) {
 		m = (k ^ m) ^ k1 //鍵と平文と副鍵を排他
 		for k := 0; k < piRound; k++ {
 			m = permutation(m) //π関数
+			//fmt.Printf("%d段目、%d回目\n", k+1, num+1)
+			//fmt.Printf("結果: %032b\n", m)
 		}
 		m ^= k1     //π関数の出力と副鍵を排他
 		result ^= m //結果をこれまでの結果と排他
 	}
-	fmt.Printf("試行: %d回目\n", num+1)
-	fmt.Printf("結果: %032b\n", result)
-	fmt.Println("----------------------------------------------------------")
-	result = 0b00000000000000000000000000000000
+	//fmt.Printf("試行: %d回目\n", num+1)
+	//fmt.Printf("結果: %032b\n", result)
+	//fmt.Println("----------------------------------------------------------")
+	c <- result
 }
 
 //π関数の中の1ラウンドの転置
@@ -116,7 +139,7 @@ func joinBit(a int, b int) int {
 func k(m map[int]bool) []int {
 	i := 0
 	result := make([]int, len(m))
-	for key, _ := range m {
+	for key := range m {
 		result[i] = key
 		i++
 	}
@@ -125,7 +148,6 @@ func k(m map[int]bool) []int {
 
 func random(min int, max int, num int) []int {
 	numRange := max - min + 1
-
 	selected := make(map[int]bool)
 	rand.Seed(time.Now().UnixNano())
 	for counter := 0; counter < num; {
