@@ -1,16 +1,20 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"math/rand"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
 const blockLen = 32 //ブロック長
 const keyLen = 32   //鍵長
 const splitLen = 8  //
-const piRound = 8   //π関数の中の転置の段数
-const times = 10    //試行回数
+const round = 16    //π関数の中の転置の段数
+const times = 1000  //試行回数
 
 /* bitを1つずつ
 bit := fmt.Sprintf("%04b", 0b1110)
@@ -24,52 +28,72 @@ func main() {
 	//実行時間の計測開始
 	start := time.Now()
 
+	//差分位置の読み込み
+	f, _ := os.Open("./16kai.txt")
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+
 	//channelの用意
 	c := make(chan int)
 
 	//出力用
+	//tmpOut := []int{}
 	output := 0b00000000000000000000000000000000
 
 	//平文をランダム生成
-	texts := random(0b0, 0b11111111111111111111111111111111, 1)
+	texts := random(0b0, 0b1111111111111111, times)
 	keys := random(0b0, 0b11111111111111111111111111111111, times)
 
-	//暗号化を複数回実行
-	for i := 0; i < times; i++ {
-		go chaskey(texts[0], keys[i], i, c)
-		//fmt.Printf("%d回目：%032b\n", i+1, output)
-	}
-	for i := 0; i < times; i++ {
-		output |= <-c
+	//1試行
+	for scanner.Scan() {
+		tmp := strings.Split(scanner.Text(), ",")
+		org := []string{"0", "0", "0", "0", "0", "0", "0", "0"}
+		posA := strings.Split(tmp[0], "")
+		posC := strings.Split(tmp[1], "")
+		fmt.Println("Aの位置", posA)
+
+		for j := 0; j < times; j++ {
+			text := nSplit(fmt.Sprintf("%016b", texts[j]), 4)
+			go chaskey(keys[j], text, org, posA, posC, c)
+		}
+		for j := 0; j < times; j++ {
+			output |= <-c
+		}
+		fmt.Printf("%032b\n", output)
 	}
 
 	//結果の表示
-	fmt.Printf("最終結果：%032b\n", output)
+	//fmt.Printf("最終結果：%032b\n", output)
 
 	//実行時間の表示
 	fmt.Println("実行時間：", time.Since(start))
 }
 
 //chaskeyの暗号本体
-func chaskey(in, k, num int, c chan int) {
-	result := 0b00000000000000000000000000000000
-	k1 := createK1(k)
+func chaskey(k int, text, org, posA, posC []string, c chan int) {
+	output := 0b00000000000000000000000000000000
 
-	for j := 0b0; j <= 0b1111111111111111111111111111111; j++ {
-		m := in ^ j      //差分ベクトルと平文を排他
-		m = (k ^ m) ^ k1 //鍵と平文と副鍵を排他
-		for k := 0; k < piRound; k++ {
-			m = permutation(m) //π関数
-			//fmt.Printf("%d段目、%d回目\n", k+1, num+1)
-			//fmt.Printf("結果: %032b\n", m)
+	for i := 0b0; i <= 0b1111111111111111; i++ { //16階差分
+		sabun := nSplit(fmt.Sprintf("%016b", i), 4)
+		for i, v := range posA {
+			v, _ := strconv.Atoi(v)
+			org[v] = sabun[i]
 		}
-		m ^= k1     //π関数の出力と副鍵を排他
-		result ^= m //結果をこれまでの結果と排他
+		for i, v := range posC {
+			v, _ := strconv.Atoi(v)
+			org[v] = text[i]
+		}
+		pt, _ := strconv.ParseInt(strings.Join(org, ""), 2, 32)
+		output = int(pt)
+		k1 := createK1(k)
+		output = (k ^ output) ^ k1 //鍵と平文と副鍵を排他
+		for k := 0; k < round; k++ {
+			output = permutation(output) //π関数
+		}
+		output ^= k1 //π関数の出力と副鍵を排他
 	}
-	//fmt.Printf("試行: %d回目\n", num+1)
-	//fmt.Printf("結果: %032b\n", result)
-	//fmt.Println("----------------------------------------------------------")
-	c <- result
+
+	c <- output
 }
 
 //π関数の中の1ラウンドの転置
@@ -160,4 +184,16 @@ func random(min int, max int, num int) []int {
 	keys := k(selected)
 	//sort.Sort(sort.IntSlice(keys)) // ソートしない場合コメントアウト
 	return keys
+}
+
+func nSplit(msg string, splitlen int) []string {
+	slc := []string{}
+	for i := 0; i < len(msg); i += splitlen {
+		if i+splitlen < len(msg) {
+			slc = append(slc, msg[i:(i+splitlen)])
+		} else {
+			slc = append(slc, msg[i:])
+		}
+	}
+	return slc
 }
