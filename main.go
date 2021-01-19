@@ -1,64 +1,45 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"math"
 	"math/rand"
-	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
 const blockLen = 32 //ブロック長
 const keyLen = 32   //鍵長
 const splitLen = 8  //
-const round = 1     //π関数の中の転置の段数
+const round = 8     //π関数の中の転置の段数
 const times = 10    //試行回数
 
-/* bitを1つずつ
-bit := fmt.Sprintf("%04b", 0b1110)
-arr := strings.Split(bit, "")
-for _, v := range arr {
-	num, _ := strconv.Atoi(v)
-	fmt.Println(num + 10)
-}
-*/
 func main() {
 	//実行時間の計測開始
 	start := time.Now()
 
-	//差分位置の読み込み
-	f, _ := os.Open("./16kai.txt")
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-
 	//channelの用意
-	c := make(chan [32]string)
+	ch := make(chan [32]string)
+
+	//鍵をランダム生成
+	keys := random(0b0, 0b11111111111111111111111111111111, times)
 
 	//出力用
 	//tmpOut := []int{}
 	output := [32]string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""}
 
-	//1試行
-	for scanner.Scan() {
-		tmp := strings.Split(scanner.Text(), ",")
-		org := []string{"0", "0", "0", "0", "0", "0", "0", "0"}
-		posA := strings.Split(tmp[0], "")
-		posC := strings.Split(tmp[1], "")
-		fmt.Println("Aの位置", posA)
+	//全体
+	for c := 0; c < 32; c++ {
+		fmt.Println("cの位置", 31-c)
 
+		//timesの分だけ試行
 		for j := 0; j < times; j++ {
-			//平文をランダム生成
-			texts := random(0b0, 0b1111111111111111, times)
-			keys := random(0b0, 0b11111111111111111111111111111111, times)
-
-			text := nSplit(fmt.Sprintf("%016b", texts[j]), 4)
-			go chaskey(keys[j], text, org, posA, posC, c)
+			go chaskey(keys[j], c, ch)
 		}
+
+		//並列で実行した結果を最終結果としてまとめる
 		for j := 0; j < times; j++ {
-			for i, v := range <-c {
+			for i, v := range <-ch {
 				if output[i] == "" {
 					output[i] = v
 				} else if v == output[i] && v == "B" {
@@ -72,7 +53,7 @@ func main() {
 			//fmt.Println(output)
 			//output |= <-c //ここが多分おかしい
 		}
-		//fmt.Println(output)
+		fmt.Println(output)
 		output = [32]string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""}
 	}
 
@@ -84,40 +65,40 @@ func main() {
 }
 
 //chaskeyの暗号本体
-func chaskey(k int, text, org, posA, posC []string, c chan [32]string) {
+func chaskey(k int, pos int, ch chan [32]string) {
 	output := 0b0
-	res := [32]int{}
+	res := [32]int64{}
 	itg := [32]string{}
 
-	for i := 0b0; i <= 0b1111111111111111; i++ { //16階差分
-		sabun := nSplit(fmt.Sprintf("%016b", i), 4)
-		for i, v := range posA {
-			v, _ := strconv.Atoi(v)
-			org[v] = sabun[i]
-		}
-		for i, v := range posC {
-			v, _ := strconv.Atoi(v)
-			org[v] = text[i]
-		}
-		pt, _ := strconv.ParseInt(strings.Join(org, ""), 2, 32)
-		output = int(pt)
+	for i := 0b0; i <= 0b1111111111111111111111111111111; i++ { //31階差分
+		//差分ベクトルにcを差し込む処理
+		t := (i >> pos) & create2(pos-1)
+		b := i & create2(pos)
+		rand.Seed(time.Now().UnixNano())
+		in := rand.Intn(2)
+		output = (((t << 1) | in) << i) | b
+
+		//副鍵生成
 		k1 := createK1(k)
-		output = (k ^ output) ^ k1 //鍵と平文と副鍵を排他
+
+		//鍵と平文と副鍵を排他
+		output = (k ^ output) ^ k1
+
+		//π関数
 		for k := 0; k < round; k++ {
-			output = permutation(output) //π関数
+			output = permutation(output)
 		}
 		output ^= k1 //π関数の出力と副鍵を排他
-		//res ^= output
-		tmpOut := strings.Split(fmt.Sprintf("%032b", output), "")
-		for l, v := range tmpOut {
-			n, _ := strconv.Atoi(v)
-			res[l] += n
+
+		//1bit毎の算術和を計算
+		for i := 0; i < 32; i++ {
+			res[i] += int64((output >> (31 - i)) & 1)
 		}
 	}
 
-	fmt.Println(res)
+	//fmt.Println(res)
 	for q, v := range res {
-		if v == 0 || v == int(math.Pow(2, 16)) {
+		if v == 0 || v == int64(math.Pow(2, 31)-1) {
 			itg[q] = "C"
 		} else if v%2 == 0 {
 			itg[q] = "B"
@@ -126,7 +107,7 @@ func chaskey(k int, text, org, posA, posC []string, c chan [32]string) {
 		}
 	}
 	//fmt.Println(itg)
-	c <- itg
+	ch <- itg
 }
 
 //π関数の中の1ラウンドの転置
@@ -192,6 +173,15 @@ func joinBit(a int, b int) int {
 	return (a << 8) | b
 }
 
+//01の乱数生成
+func binaryRand() string {
+	rand.Seed(time.Now().UnixNano())
+	if rand.Intn(2) == 0 {
+		return "0"
+	}
+	return "1"
+}
+
 //以下2つが任意の範囲で乱数を生成して配列に格納する関数
 func k(m map[int]bool) []int {
 	i := 0
@@ -219,6 +209,7 @@ func random(min int, max int, num int) []int {
 	return keys
 }
 
+//文字列をn分割する
 func nSplit(msg string, splitlen int) []string {
 	slc := []string{}
 	for i := 0; i < len(msg); i += splitlen {
@@ -229,4 +220,14 @@ func nSplit(msg string, splitlen int) []string {
 		}
 	}
 	return slc
+}
+
+//任意の長さの2進数(全部1)を返す
+func create2(num int) int {
+	txt := ""
+	for j := 0; j < num; j++ {
+		txt += "1"
+	}
+	res, _ := strconv.ParseInt(txt, 2, 32)
+	return int(res)
 }
