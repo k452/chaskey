@@ -14,8 +14,8 @@ import (
 const blockLen = 32 //ブロック長
 const keyLen = 32   //鍵長
 const splitLen = 8  //
-const round = 1     //π関数の中の転置の段数
-const times = 10    //試行回数
+const round = 2     //π関数の中の転置の段数
+const times = 10000 //試行回数
 
 /* bitを1つずつ
 bit := fmt.Sprintf("%04b", 0b1110)
@@ -70,9 +70,8 @@ func main() {
 				}
 			}
 			//fmt.Println(output)
-			//output |= <-c //ここが多分おかしい
 		}
-		//fmt.Println(output)
+		fmt.Println(output)
 		output = [32]string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""}
 	}
 
@@ -86,10 +85,10 @@ func main() {
 //chaskeyの暗号本体
 func chaskey(k int, text, org, posA, posC []string, c chan [32]string) {
 	output := 0b0
-	res := [32]int{}
+	res := [32]int64{}
 	itg := [32]string{}
 
-	for i := 0b0; i <= 0b1111111111111111; i++ { //16階差分
+	for i := 0b0; i <= 0b111; i++ { //16階差分
 		sabun := nSplit(fmt.Sprintf("%016b", i), 4)
 		for i, v := range posA {
 			v, _ := strconv.Atoi(v)
@@ -107,17 +106,16 @@ func chaskey(k int, text, org, posA, posC []string, c chan [32]string) {
 			output = permutation(output) //π関数
 		}
 		output ^= k1 //π関数の出力と副鍵を排他
-		//res ^= output
-		tmpOut := strings.Split(fmt.Sprintf("%032b", output), "")
-		for l, v := range tmpOut {
-			n, _ := strconv.Atoi(v)
-			res[l] += n
+
+		//1bit毎の算術和を計算
+		for i := 0; i < 32; i++ {
+			res[i] += int64((output >> (31 - i)) & 1)
 		}
 	}
 
-	fmt.Println(res)
+	//fmt.Println(res)
 	for q, v := range res {
-		if v == 0 || v == int(math.Pow(2, 16)) {
+		if v == 0 || v == int64(math.Pow(2, 16)) {
 			itg[q] = "C"
 		} else if v%2 == 0 {
 			itg[q] = "B"
