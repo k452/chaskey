@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"strconv"
@@ -13,8 +14,8 @@ import (
 const blockLen = 32 //ブロック長
 const keyLen = 32   //鍵長
 const splitLen = 8  //
-const round = 16    //π関数の中の転置の段数
-const times = 1000  //試行回数
+const round = 1     //π関数の中の転置の段数
+const times = 10    //試行回数
 
 /* bitを1つずつ
 bit := fmt.Sprintf("%04b", 0b1110)
@@ -34,15 +35,11 @@ func main() {
 	scanner := bufio.NewScanner(f)
 
 	//channelの用意
-	c := make(chan int)
+	c := make(chan [32]string)
 
 	//出力用
 	//tmpOut := []int{}
-	output := 0b00000000000000000000000000000000
-
-	//平文をランダム生成
-	texts := random(0b0, 0b1111111111111111, times)
-	keys := random(0b0, 0b11111111111111111111111111111111, times)
+	output := [32]string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""}
 
 	//1試行
 	for scanner.Scan() {
@@ -53,13 +50,30 @@ func main() {
 		fmt.Println("Aの位置", posA)
 
 		for j := 0; j < times; j++ {
+			//平文をランダム生成
+			texts := random(0b0, 0b1111111111111111, times)
+			keys := random(0b0, 0b11111111111111111111111111111111, times)
+
 			text := nSplit(fmt.Sprintf("%016b", texts[j]), 4)
 			go chaskey(keys[j], text, org, posA, posC, c)
 		}
 		for j := 0; j < times; j++ {
-			output |= <-c
+			for i, v := range <-c {
+				if output[i] == "" {
+					output[i] = v
+				} else if v == output[i] && v == "B" {
+					output[i] = "B"
+				} else if v == output[i] && v == "C" {
+					output[i] = "C"
+				} else {
+					output[i] = "U"
+				}
+			}
+			//fmt.Println(output)
+			//output |= <-c //ここが多分おかしい
 		}
-		fmt.Printf("%032b\n", output)
+		//fmt.Println(output)
+		output = [32]string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""}
 	}
 
 	//結果の表示
@@ -70,8 +84,10 @@ func main() {
 }
 
 //chaskeyの暗号本体
-func chaskey(k int, text, org, posA, posC []string, c chan int) {
-	output := 0b00000000000000000000000000000000
+func chaskey(k int, text, org, posA, posC []string, c chan [32]string) {
+	output := 0b0
+	res := [32]int{}
+	itg := [32]string{}
 
 	for i := 0b0; i <= 0b1111111111111111; i++ { //16階差分
 		sabun := nSplit(fmt.Sprintf("%016b", i), 4)
@@ -91,9 +107,26 @@ func chaskey(k int, text, org, posA, posC []string, c chan int) {
 			output = permutation(output) //π関数
 		}
 		output ^= k1 //π関数の出力と副鍵を排他
+		//res ^= output
+		tmpOut := strings.Split(fmt.Sprintf("%032b", output), "")
+		for l, v := range tmpOut {
+			n, _ := strconv.Atoi(v)
+			res[l] += n
+		}
 	}
 
-	c <- output
+	fmt.Println(res)
+	for q, v := range res {
+		if v == 0 || v == int(math.Pow(2, 16)) {
+			itg[q] = "C"
+		} else if v%2 == 0 {
+			itg[q] = "B"
+		} else {
+			itg[q] = "U"
+		}
+	}
+	//fmt.Println(itg)
+	c <- itg
 }
 
 //π関数の中の1ラウンドの転置
