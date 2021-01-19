@@ -97,7 +97,7 @@ func chaskey(k int, pos int, ch chan [32]string) {
 
 	//fmt.Println(res)
 	for q, v := range res {
-		if v == 0 || v == int64(math.Pow(2, 31)-1) {
+		if v == 0 || v == int64(math.Pow(2, 31)) {
 			itg[q] = "C"
 		} else if v%2 == 0 {
 			itg[q] = "B"
@@ -105,7 +105,7 @@ func chaskey(k int, pos int, ch chan [32]string) {
 			itg[q] = "U"
 		}
 	}
-	//fmt.Println(itg)
+	fmt.Println("各試行の特性", itg)
 	ch <- itg
 }
 
