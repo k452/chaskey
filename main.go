@@ -51,7 +51,6 @@ func main() {
 				}
 			}
 			//fmt.Println(output)
-			//output |= <-c //ここが多分おかしい
 		}
 		fmt.Println(output)
 		output = [32]string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""}
@@ -72,7 +71,7 @@ func chaskey(k int, pos int, ch chan [32]string) {
 
 	for i := 0b0; i <= 0b1111111111111111111111111111111; i++ { //31階差分
 		//差分ベクトルにcを差し込む処理
-		t := (i >> pos) & create2(pos-1)
+		t := (i >> pos) & create2(31-pos)
 		b := i & create2(pos)
 		rand.Seed(time.Now().UnixNano())
 		in := rand.Intn(2)
