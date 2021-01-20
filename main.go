@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"strconv"
 	"time"
 )
 
@@ -21,12 +20,15 @@ func main() {
 	//channelの用意
 	ch := make(chan [32]string)
 
+	//乱数
+	rand.Seed(time.Now().UnixNano())
+
 	//鍵をランダム生成
 	keys := random(0b0, 0b11111111111111111111111111111111, times)
 
 	//出力用
 	//tmpOut := []int{}
-	output := [32]string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""}
+	output := [32]string{}
 
 	//全体
 	for c := 0; c < 32; c++ {
@@ -53,7 +55,7 @@ func main() {
 			//fmt.Println(output)
 		}
 		fmt.Println(output)
-		output = [32]string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""}
+		output = [32]string{}
 	}
 
 	//結果の表示
@@ -68,17 +70,34 @@ func chaskey(k int, pos int, ch chan [32]string) {
 	output := 0b0
 	res := [32]int64{}
 	itg := [32]string{}
+	var t, b, in int
+
+	//副鍵生成
+	k1 := createK1(k)
+	in = rand.Intn(2)
 
 	for i := 0b0; i <= 0b1111111111111111111111111111111; i++ { //31階差分
-		//差分ベクトルにcを差し込む処理
-		t := (i >> pos) & create2(31-pos)
-		b := i & create2(pos)
-		rand.Seed(time.Now().UnixNano())
-		in := rand.Intn(2)
-		output = (((t << 1) | in) << i) | b
+		//if i == 0b11111111 {
+		//	fmt.Println("8階まで終了")
+		//} else if i == 0b1111111111111111 {
+		//	fmt.Println("16階まで終了")
+		//} else if i == 0b111111111111111111111111 {
+		//	fmt.Println("24階まで終了")
+		//} else if i == 0b1111111111111111111111111111 {
+		//	fmt.Println("28階まで終了")
+		//}
 
-		//副鍵生成
-		k1 := createK1(k)
+		//差分ベクトルにcを差し込む処理
+		t = (i >> pos) & create2(31-pos)
+		b = i & create2(pos)
+
+		if pos == 0 {
+			output = ((t << 1) | in) << pos
+		} else if pos == 31 {
+			output = (in << 31) | b
+		} else {
+			output = (((t << 1) | in) << pos) | b
+		}
 
 		//鍵と平文と副鍵を排他
 		output = (k ^ output) ^ k1
@@ -90,8 +109,8 @@ func chaskey(k int, pos int, ch chan [32]string) {
 		output ^= k1 //π関数の出力と副鍵を排他
 
 		//1bit毎の算術和を計算
-		for i := 0; i < 32; i++ {
-			res[i] += int64((output >> (31 - i)) & 1)
+		for j := 0; j < 32; j++ {
+			res[j] += int64((output >> (31 - j)) & 1)
 		}
 	}
 
@@ -105,7 +124,7 @@ func chaskey(k int, pos int, ch chan [32]string) {
 			itg[q] = "U"
 		}
 	}
-	fmt.Println("各試行の特性", itg)
+	//fmt.Println("各試行の特性", itg)
 	ch <- itg
 }
 
@@ -223,10 +242,106 @@ func nSplit(msg string, splitlen int) []string {
 
 //任意の長さの2進数(全部1)を返す
 func create2(num int) int {
-	txt := ""
-	for j := 0; j < num; j++ {
-		txt += "1"
+	res := 0b0
+	switch num {
+	case 0:
+		res = 0b0
+		break
+	case 1:
+		res = 0b1
+		break
+	case 2:
+		res = 0b11
+		break
+	case 3:
+		res = 0b111
+		break
+	case 4:
+		res = 0b1111
+		break
+	case 5:
+		res = 0b11111
+		break
+	case 6:
+		res = 0b111111
+		break
+	case 7:
+		res = 0b1111111
+		break
+	case 8:
+		res = 0b11111111
+		break
+	case 9:
+		res = 0b111111111
+		break
+	case 10:
+		res = 0b1111111111
+		break
+	case 11:
+		res = 0b11111111111
+		break
+	case 12:
+		res = 0b111111111111
+		break
+	case 13:
+		res = 0b1111111111111
+		break
+	case 14:
+		res = 0b11111111111111
+		break
+	case 15:
+		res = 0b111111111111111
+		break
+	case 16:
+		res = 0b1111111111111111
+		break
+	case 17:
+		res = 0b11111111111111111
+		break
+	case 18:
+		res = 0b111111111111111111
+		break
+	case 19:
+		res = 0b1111111111111111111
+		break
+	case 20:
+		res = 0b11111111111111111111
+		break
+	case 21:
+		res = 0b111111111111111111111
+		break
+	case 22:
+		res = 0b1111111111111111111111
+		break
+	case 23:
+		res = 0b11111111111111111111111
+		break
+	case 24:
+		res = 0b111111111111111111111111
+		break
+	case 25:
+		res = 0b1111111111111111111111111
+		break
+	case 26:
+		res = 0b11111111111111111111111111
+		break
+	case 27:
+		res = 0b111111111111111111111111111
+		break
+	case 28:
+		res = 0b1111111111111111111111111111
+		break
+	case 29:
+		res = 0b11111111111111111111111111111
+		break
+	case 30:
+		res = 0b111111111111111111111111111111
+		break
+	case 31:
+		res = 0b1111111111111111111111111111111
+		break
+	default:
+		panic("範囲外")
 	}
-	res, _ := strconv.ParseInt(txt, 2, 32)
-	return int(res)
+	return res
 }
