@@ -7,11 +7,10 @@ import (
 	"time"
 )
 
-const blockLen = 32 //ブロック長
-const keyLen = 32   //鍵長
-const splitLen = 8  //
-const round = 8     //π関数の中の転置の段数
-const times = 10    //試行回数
+const sabun = 28
+const splitLen = 8 //
+const round = 8    //π関数の中の転置の段数
+const times = 10   //試行回数
 
 func main() {
 	//実行時間の計測開始
@@ -31,8 +30,8 @@ func main() {
 	output := [32]string{}
 
 	//全体
-	for c := 0; c < 32; c++ {
-		fmt.Println("cの位置", 31-c)
+	for c := 0; c < 32; c += 4 {
+		fmt.Println("cの位置", (sabun-c)/4)
 
 		//timesの分だけ試行
 		for j := 0; j < times; j++ {
@@ -76,27 +75,17 @@ func chaskey(k int, pos int, ch chan [32]string) {
 	k1 := createK1(k)
 	in = rand.Intn(2)
 
-	for i := 0b0; i <= 0b1111111111111111111111111111111; i++ { //31階差分
-		//if i == 0b11111111 {
-		//	fmt.Println("8階まで終了")
-		//} else if i == 0b1111111111111111 {
-		//	fmt.Println("16階まで終了")
-		//} else if i == 0b111111111111111111111111 {
-		//	fmt.Println("24階まで終了")
-		//} else if i == 0b1111111111111111111111111111 {
-		//	fmt.Println("28階まで終了")
-		//}
-
+	for i := 0b0; i <= 0b1111111111111111111111111111; i++ { //31階差分
 		//差分ベクトルにcを差し込む処理
-		t = (i >> pos) & create2(31-pos)
+		t = (i >> pos) & create2(sabun-pos)
 		b = i & create2(pos)
 
 		if pos == 0 {
-			output = ((t << 1) | in) << pos
-		} else if pos == 31 {
-			output = (in << 31) | b
+			output = ((t << 4) | in) << pos
+		} else if pos == sabun {
+			output = (in << sabun) | b
 		} else {
-			output = (((t << 1) | in) << pos) | b
+			output = (((t << 4) | in) << pos) | b
 		}
 
 		//鍵と平文と副鍵を排他
@@ -116,7 +105,7 @@ func chaskey(k int, pos int, ch chan [32]string) {
 
 	//fmt.Println(res)
 	for q, v := range res {
-		if v == 0 || v == int64(math.Pow(2, 31)) {
+		if v == 0 || v == int64(math.Pow(2, sabun)) {
 			itg[q] = "C"
 		} else if v%2 == 0 {
 			itg[q] = "B"
