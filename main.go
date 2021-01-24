@@ -119,6 +119,7 @@ func chaskey(k int, pos int, sp int) [32]string {
 		}
 	}
 
+	//fmt.Println("特性", itg)
 	return itg
 }
 
