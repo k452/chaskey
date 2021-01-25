@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const sabun = 28
+const sabun = 30
 const splitLen = 8 //
 const round = 8    //π関数の中の転置の段数
 const times = 10   //試行回数
@@ -30,12 +30,12 @@ func main() {
 	output := [32]string{}
 
 	//全体
-	for c := 0; c < 32; c += 4 {
-		fmt.Println("cの位置", (sabun-c)/4)
+	for pos := 0; pos < 32; pos += 2 {
+		fmt.Println("cの位置", (sabun-pos)/2)
 
 		//timesの分だけ試行
 		for j := 0; j < times; j++ {
-			go chaskey(keys[j], c, ch)
+			go chaskey(keys[j], pos, ch)
 		}
 
 		//並列で実行した結果を最終結果としてまとめる
@@ -55,13 +55,11 @@ func main() {
 		}
 		fmt.Println(output)
 		output = [32]string{}
+		fmt.Println("\n実行時間：", time.Since(start))
 	}
 
-	//結果の表示
-	//fmt.Printf("最終結果：%032b\n", output)
-
 	//実行時間の表示
-	fmt.Println("実行時間：", time.Since(start))
+	fmt.Println("最終実行時間：", time.Since(start))
 }
 
 //chaskeyの暗号本体
@@ -73,19 +71,17 @@ func chaskey(k int, pos int, ch chan [32]string) {
 
 	//副鍵生成
 	k1 := createK1(k)
-	in = rand.Intn(2)
+	in = rand.Intn(0b11)
 
-	for i := 0b0; i <= 0b1111111111111111111111111111; i++ { //31階差分
+	for i := 0b0; i <= 0b111111111111111111111111111111; i++ { //30階差分
 		//差分ベクトルにcを差し込む処理
-		t = (i >> pos) & create2(sabun-pos)
+		t = (i >> pos) & create2(32-pos)
 		b = i & create2(pos)
 
 		if pos == 0 {
-			output = ((t << 4) | in) << pos
-		} else if pos == sabun {
-			output = (in << sabun) | b
+			output = ((t << 2) | in) << pos
 		} else {
-			output = (((t << 4) | in) << pos) | b
+			output = (((t << 2) | in) << pos) | b
 		}
 
 		//鍵と平文と副鍵を排他
@@ -328,6 +324,9 @@ func create2(num int) int {
 		break
 	case 31:
 		res = 0b1111111111111111111111111111111
+		break
+	case 32:
+		res = 0b11111111111111111111111111111111
 		break
 	default:
 		panic("範囲外")
