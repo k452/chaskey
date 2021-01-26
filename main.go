@@ -12,18 +12,12 @@ const splitLen = 8 //
 const round = 8    //π関数の中の転置の段数
 const times = 10   //試行回数
 
-type Integral struct {
-	pos    int
-	sp     int
-	result [32]string
-}
-
 func main() {
 	//実行時間の計測開始
 	start := time.Now()
 
 	//channelの用意
-	ch := make(chan []Integral)
+	ch := make(chan [32]string)
 
 	//乱数
 	rand.Seed(time.Now().UnixNano())
@@ -31,69 +25,65 @@ func main() {
 	//鍵をランダム生成
 	keys := random(0b0, 0b11111111111111111111111111111111, times)
 
-	//timesの分だけ試行
-	for j := 0; j < times; j++ {
-		go oneTimes(keys, j, ch)
-	}
+	//出力用
+	//tmpOut := []int{}
+	output := [32]string{}
 
-	//並列で実行した結果を最終結果としてまとめる
-	var lastResult [30][3][32]string
-	for j := 0; j < times; j++ {
-		for _, v := range <-ch {
-			if j == 0 {
-				lastResult[v.pos][v.sp] = v.result
-			} else {
-				if v.pos == 29 {
-					for i, w := range v.result {
-						if lastResult[v.pos][0][i] == "" {
-							lastResult[v.pos][0][i] = w
-						} else if w == lastResult[v.pos][0][i] && w == "B" {
-							lastResult[v.pos][0][i] = "B"
-						} else if w == lastResult[v.pos][0][i] && w == "C" {
-							lastResult[v.pos][0][i] = "C"
-						} else {
-							lastResult[v.pos][0][i] = "U"
-						}
-					}
-				} else if v.pos != 29 {
-					for i, w := range v.result {
-						if lastResult[v.pos][v.sp][i] == "" {
-							lastResult[v.pos][v.sp][i] = w
-						} else if w == lastResult[v.pos][v.sp][i] && w == "B" {
-							lastResult[v.pos][v.sp][i] = "B"
-						} else if w == lastResult[v.pos][v.sp][i] && w == "C" {
-							lastResult[v.pos][v.sp][i] = "C"
-						} else {
-							lastResult[v.pos][v.sp][i] = "U"
-						}
-					}
+	//全体
+	for pos := 0; pos < 30; pos++ {
+		fmt.Println("一番左のcの位置", (sabun - pos))
+
+		//timesの分だけ試行
+		for j := 0; j < times; j++ {
+			go chaskey(keys[j], pos, ch)
+		}
+
+		//並列で実行した結果を最終結果としてまとめる
+		for j := 0; j < times; j++ {
+			for i, v := range <-ch {
+				if output[i] == "" {
+					output[i] = v
+				} else if v == output[i] && v == "B" {
+					output[i] = "B"
+				} else if v == output[i] && v == "C" {
+					output[i] = "C"
+				} else {
+					output[i] = "U"
 				}
 			}
+			//fmt.Println(output)
 		}
-	}
-
-	for d, f := range lastResult {
-		for k, l := range f {
-			fmt.Printf("pos:%d sp:%dの特性↓\n", d, k)
-			fmt.Println(l)
-		}
+		fmt.Println(output)
+		output = [32]string{}
+		//fmt.Println("\n実行時間：", time.Since(start))
 	}
 
 	//実行時間の表示
-	fmt.Println("実行時間：", time.Since(start))
+	fmt.Println("最終実行時間：", time.Since(start))
 }
 
 //chaskeyの暗号本体
-func chaskey(k int, pos int, sp int) [32]string {
+func chaskey(k int, pos int, ch chan [32]string) {
 	output := 0b0
 	res := [32]int64{}
 	itg := [32]string{}
+	var t, b, in int
 
 	//副鍵生成
 	k1 := createK1(k)
-	in := rand.Intn(0b111)
+	in = rand.Intn(0b111)
+
 	for i := 0b0; i <= 0b11111111111111111111111111111; i++ { //29階差分
-		output = createSabun(i, in, pos, sp)
+		//差分ベクトルにcを差し込む処理
+		t = (i >> pos) & create2(32-pos)
+		b = i & create2(pos)
+
+		if pos == 0 {
+			output = ((t << 3) | in) << pos
+		} else {
+			output = (((t << 3) | in) << pos) | b
+		}
+
 		//鍵と平文と副鍵を排他
 		output = (k ^ output) ^ k1
 
@@ -109,6 +99,7 @@ func chaskey(k int, pos int, sp int) [32]string {
 		}
 	}
 
+	//fmt.Println(res)
 	for q, v := range res {
 		if v == 0 || v == int64(math.Pow(2, sabun)) {
 			itg[q] = "C"
@@ -118,9 +109,8 @@ func chaskey(k int, pos int, sp int) [32]string {
 			itg[q] = "U"
 		}
 	}
-
-	//fmt.Println("特性", itg)
-	return itg
+	//fmt.Println("各試行の特性", itg)
+	ch <- itg
 }
 
 //π関数の中の1ラウンドの転置
@@ -156,94 +146,6 @@ func permutation(m int) int {
 	v3_4 := v0_3 ^ v3_3
 
 	return joinBit(joinBit(joinBit(v0_3, v1_4), v2_3), v3_4)
-}
-
-func oneTimes(keys []int, j int, ch chan []Integral) {
-	var output []Integral
-	for pos := 0; pos <= 29; pos++ {
-		for sp := 0; sp < 3; sp++ {
-			var tmp Integral = Integral{
-				pos:    pos,
-				sp:     sp,
-				result: chaskey(keys[j], pos, sp),
-			}
-			output = append(output, tmp)
-		}
-	}
-	ch <- output
-}
-
-func createSabun(pt int, in int, pos int, sp int) int {
-	l := 0b0
-	r := 0b0
-	output := 0b0
-
-	if pos == 29 {
-		l, r = split3(in, 0)
-		output = (pt << 3) | l
-		sp = 0
-	} else if pos == 0 {
-		if sp == 0 {
-			//posへlを投入
-			output = (in << 29) | pt
-		} else if sp == 1 {
-			//posへl、pos+3へrを投入
-			l, r = split3(in, sp)
-			output = ((l << 29) | pt)
-			left := (output >> 28) & 0b11
-			right := output & 0b1111111111111111111111111111
-			output = (((left << 2) | r) << 28) | right
-		} else if sp == 2 {
-			//posへl、pos+2へrを投入
-			l, r = split3(in, sp)
-			output = ((l << 29) | pt)
-			left := (output >> 29) & 0b111
-			right := output & 0b11111111111111111111111111111
-			output = (((left << 2) | r) << 28) | right
-		}
-	} else {
-		for sp := 0; sp < 3; sp++ {
-			if sp == 0 {
-				//posへlを投入
-				left := (pt >> (29 - pos)) & create2(pos)
-				right := pt & create2(29-pos)
-				output = (((left << pos) | in) << (pos)) | right
-			} else if sp == 1 {
-				//posへl、pos+3へrを投入
-				l, r = split3(in, sp)
-				left := (pt >> (29 - pos)) & create2(pos)
-				right := pt & create2(29-pos)
-				output = (((left << pos) | l) << pos) | right
-
-				if pos == 1 {
-					output = (output << 2) | r
-				} else {
-					left2 := (output >> (pos - 1)) & create2(pos)
-					right2 := output & create2(pos-1)
-					output = (((left2 << 2) | r) << (pos - 1)) | right2
-				}
-			} else if sp == 2 {
-				//posへl、pos+2へrを投入
-				l, r = split3(in, sp)
-				left := (pt >> (29 - pos)) & create2(pos)
-				right := pt & create2(29-pos)
-				output = (((left << pos) | l) << (pos)) | right
-
-				if pos == 1 {
-					output = (output << 1) | r
-				} else if pos == 2 {
-					left2 := (output >> 1) & create2(3)
-					right2 := output & create2(pos-1)
-					output = (((left2 << 1) | r) << (pos - 1)) | right2
-				} else {
-					left2 := (output >> (pos - 1)) & create2(pos)
-					right2 := output & create2(pos-1)
-					output = (((left2 << 1) | r) << (pos - 1)) | right2
-				}
-			}
-		}
-	}
-	return output
 }
 
 //算術和ではみ出す桁を除去
@@ -321,23 +223,6 @@ func nSplit(msg string, splitlen int) []string {
 		}
 	}
 	return slc
-}
-
-func split3(in int, pos int) (int, int) {
-	l := 0b0
-	r := 0b0
-
-	if pos == 0 {
-		l = in
-	} else if pos == 1 {
-		l = (in >> 2) & create2(0b1)
-		r = in & 0b11
-	} else if pos == 2 {
-		l = (in >> 1) & create2(0b11)
-		r = in & 0b1
-	}
-
-	return l, r
 }
 
 //任意の長さの2進数(全部1)を返す
@@ -439,6 +324,9 @@ func create2(num int) int {
 		break
 	case 31:
 		res = 0b1111111111111111111111111111111
+		break
+	case 32:
+		res = 0b11111111111111111111111111111111
 		break
 	default:
 		panic("範囲外")
