@@ -55,7 +55,7 @@ func main() {
 		}
 		fmt.Println(output)
 		output = [32]string{}
-		fmt.Println("\n実行時間：", time.Since(start))
+		//fmt.Println("\n実行時間：", time.Since(start))
 	}
 
 	//実行時間の表示
