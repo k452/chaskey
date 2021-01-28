@@ -9,7 +9,7 @@ import (
 
 const sabun = 28
 const splitLen = 8 //
-const round = 8    //π関数の中の転置の段数
+const round = 16   //π関数の中の転置の段数
 const times = 10   //試行回数
 
 func main() {
@@ -30,8 +30,8 @@ func main() {
 	output := [32]string{}
 
 	//全体
-	for c := 0; c < 32; c += 4 {
-		fmt.Println("cの位置", (sabun-c)/4)
+	for c := 0; c < 29; c++ {
+		fmt.Println("cの位置", (sabun - c))
 
 		//timesの分だけ試行
 		for j := 0; j < times; j++ {
@@ -73,17 +73,15 @@ func chaskey(k int, pos int, ch chan [32]string) {
 
 	//副鍵生成
 	k1 := createK1(k)
-	in = rand.Intn(2)
+	in = rand.Intn(0b1111)
 
-	for i := 0b0; i <= 0b1111111111111111111111111111; i++ { //31階差分
+	for i := 0b0; i <= 0b1111111111111111111111111111; i++ { //28階差分
 		//差分ベクトルにcを差し込む処理
 		t = (i >> pos) & create2(sabun-pos)
 		b = i & create2(pos)
 
 		if pos == 0 {
 			output = ((t << 4) | in) << pos
-		} else if pos == sabun {
-			output = (in << sabun) | b
 		} else {
 			output = (((t << 4) | in) << pos) | b
 		}
