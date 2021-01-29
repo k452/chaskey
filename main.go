@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"time"
 )
@@ -42,13 +41,9 @@ func main() {
 		//並列で実行した結果を最終結果としてまとめる
 		for j := 0; j < times; j++ {
 			for i, v := range <-ch {
-				if output[i] == "" {
+				if output[i] == "" || v == output[i] {
 					output[i] = v
-				} else if v == output[i] && v == "B" {
-					output[i] = "B"
-				} else if v == output[i] && v == "C" {
-					output[i] = "C"
-				} else {
+				} else if v != output[i] {
 					output[i] = "U"
 				}
 			}
@@ -68,7 +63,7 @@ func main() {
 //chaskeyの暗号本体
 func chaskey(k int, pos int, ch chan [32]string) {
 	output := 0b0
-	res := [32]int64{}
+	res := 0b0
 	itg := [32]string{}
 	var t, b, in int
 
@@ -110,18 +105,19 @@ func chaskey(k int, pos int, ch chan [32]string) {
 
 		//1bit毎の算術和を計算
 		for j := 0; j < 32; j++ {
-			res[j] += int64((output >> (31 - j)) & 1)
+			res ^= output
 		}
 	}
 
 	//fmt.Println(res)
-	for q, v := range res {
-		if v == 0 || v == int64(math.Pow(2, 31)) {
-			itg[q] = "C"
-		} else if v%2 == 0 {
-			itg[q] = "B"
+	for j := 0; j < 32; j++ {
+		tmp := (res >> (31 - j)) & 1
+		if tmp == 0b0 {
+			itg[j] = "B"
+		} else if tmp == 0b1 {
+			itg[j] = "O"
 		} else {
-			itg[q] = "U"
+			fmt.Println("分岐ミス")
 		}
 	}
 	//fmt.Println("各試行の特性", itg)
