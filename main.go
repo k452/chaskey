@@ -40,13 +40,9 @@ func main() {
 		//並列で実行した結果を最終結果としてまとめる
 		for j := 0; j < times; j++ {
 			for i, v := range <-ch {
-				if output[i] == "" {
+				if output[i] == "" || v == output[i] {
 					output[i] = v
-				} else if v == output[i] && v == "B" {
-					output[i] = "B"
-				} else if v == output[i] && v == "C" {
-					output[i] = "C"
-				} else {
+				} else if v != output[i] {
 					output[i] = "U"
 				}
 			}
