@@ -61,23 +61,25 @@ func main() {
 func chaskey(k int, pos int, ch chan [32]string) {
 	res := 0b0
 	itg := [32]string{}
-	var t, b, in int
+	//var t, b, in int
 
 	//副鍵生成
 	k1 := createK1(k)
-	in = rand.Intn(0b11)
+	in := rand.Intn(0b11111111111111111111111111111111)
 
 	for i := 0b0; i <= 0b111111111111111111111111111111; i++ { //30階差分
 		//差分ベクトルにcを差し込む処理
-		output := 0b0
-		t = (i >> pos) & create2(32-pos)
-		b = i & create2(pos)
+		output := in ^ RotateL32(i, pos)
+		/*
+			t = (i >> pos) & create2(32-pos)
+			b = i & create2(pos)
 
-		if pos == 0 {
-			output = ((t << 2) | in) << pos
-		} else {
-			output = (((t << 2) | in) << pos) | b
-		}
+			if pos == 0 {
+				output = ((t << 2) | in) << pos
+			} else {
+				output = (((t << 2) | in) << pos) | b
+			}
+		*/
 
 		//鍵と平文と副鍵を排他
 		output = (k ^ output) ^ k1
