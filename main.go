@@ -22,7 +22,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	//鍵をランダム生成
-	keys := random(0b0, 0b11111111111111111111111111111111, times)
+	key := rand.Intn(0b11111111111111111111111111111111)
 
 	//出力用
 	//tmpOut := []int{}
@@ -34,7 +34,7 @@ func main() {
 
 		//timesの分だけ試行
 		for j := 0; j < times; j++ {
-			go chaskey(keys[j], pos, ch)
+			go chaskey(key, pos, ch)
 		}
 
 		//並列で実行した結果を最終結果としてまとめる
@@ -101,11 +101,8 @@ func chaskey(k int, pos int, ch chan [32]string) {
 			itg[j] = "B"
 		} else if tmp == 0b1 {
 			itg[j] = "O"
-		} else {
-			fmt.Println("分岐ミス")
 		}
 	}
-	//fmt.Println("各試行の特性", itg)
 	ch <- itg
 }
 
